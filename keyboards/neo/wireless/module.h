@@ -64,7 +64,7 @@ enum {
     MD_SND_CMD_DEVCTRL_SLEEP_BT_EN        = 0x55, // timeout 30min enable in BT mode
     MD_SND_CMD_DEVCTRL_SLEEP_BT_DIS       = 0x56, // timeout 30min disable in BT mode
     MD_SND_CMD_DEVCTRL_SLEEP_2G4_EN       = 0x57, // timeout 30min enable in 2.4G mode
-    MD_SND_CMD_DEVCTRL_SLEEP_2G4_DIS      = 0x58, // timeout 30min enable in 2.4G mode
+    MD_SND_CMD_DEVCTRL_SLEEP_2G4_DIS      = 0x58, // timeout 30min disable in 2.4G mode
     MD_SND_CMD_DEVCTRL_RSV_DEBUG          = 0x60, // reserved
     MD_SND_CMD_DEVCTRL_RSV_SLEEP          = 0x61, // reserved
     MD_SND_CMD_DEVCTRL_FORCED_PAIRING_BT  = 0x62, // forced pairing, to be used in a factory environment.
