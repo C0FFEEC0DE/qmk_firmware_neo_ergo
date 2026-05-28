@@ -131,9 +131,14 @@ bool lpwr_is_allow_timeout_hook(void) {
 
 void wireless_post_task(void) {
     if (post_init_timer && timer_elapsed32(post_init_timer) >= 100) {
+        // Send commands with small delays to ensure SMSG queue doesn't overflow
+        // and CH582F has time to process each command before the next one arrives
         md_send_devctrl(MD_SND_CMD_DEVCTRL_FW_VERSION);   // get the module fw version.
+        wait_ms(5);
         md_send_devctrl(MD_SND_CMD_DEVCTRL_SLEEP_BT_EN);  // timeout 30min to sleep in bt mode, enable
+        wait_ms(5);
         md_send_devctrl(MD_SND_CMD_DEVCTRL_SLEEP_2G4_EN); // timeout 30min to sleep in 2.4g mode, enable
+        wait_ms(5);
         wireless_devs_change(!confinfo.devs, confinfo.devs, false);
         post_init_timer = 0x00;
     }
