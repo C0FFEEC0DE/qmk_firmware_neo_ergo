@@ -324,7 +324,7 @@ void _unhandled_exception(void) {
     mcu_reset();
 }
 
-// Exprimental change to fix duplicate and hung key presses on wireless
+// Experimental change to fix duplicate and hung key presses on wireless
 void wireless_send_nkro(report_nkro_t *report) {
     static report_keyboard_t temp_report_keyboard                 = {0};
     uint8_t                  wls_report_nkro[MD_SND_CMD_NKRO_LEN] = {0};
@@ -373,28 +373,21 @@ void wireless_send_nkro(report_nkro_t *report) {
 
         temp_report_nkro = *report;
 
-        // find key up and del it.
-        uint8_t nkro_keys = key_count;
+        // Detect released keys by comparing current report against previous state.
+        // Any key that was in temp_report_keyboard but is now absent in temp_report_nkro
+        // is a released key — clear its slot in the 6KRO buffer so the host gets a
+        // proper release event. (Bug 2c fix)
         for (uint8_t i = 0; i < WLS_KEYBOARD_REPORT_KEYS; i++) {
-            report_nkro_t found_report_nkro;
-            uint8_t       usageid = 0x00;
-            uint8_t       n;
-
-            found_report_nkro = temp_report_nkro;
-
-            for (uint8_t c = 0; c < nkro_keys; c++) {
-                for (n = 0; n < NKRO_REPORT_BITS && !found_report_nkro.bits[n]; n++) {
-                }
-                usageid = (n << 3) | biton(found_report_nkro.bits[n]);
-                del_key_bit(&found_report_nkro, usageid);
-                if (usageid == temp_report_keyboard.keys[i]) {
-                    del_key_bit(&temp_report_nkro, usageid);
-                    nkro_keys--;
-                    break;
-                }
+            uint8_t prev_key = temp_report_keyboard.keys[i];
+            if (prev_key == 0x00) {
+                continue;
             }
 
-            if (usageid != temp_report_keyboard.keys[i]) {
+            // Check if this previously-held key is still pressed in the current report
+            uint8_t byte_idx = prev_key >> 3;
+            uint8_t bit_idx  = prev_key & 7;
+            if (byte_idx >= NKRO_REPORT_BITS || (temp_report_nkro.bits[byte_idx] & (1 << bit_idx)) == 0) {
+                // Key was released — detach it from the slot
                 temp_report_keyboard.keys[i] = 0x00;
             }
         }
