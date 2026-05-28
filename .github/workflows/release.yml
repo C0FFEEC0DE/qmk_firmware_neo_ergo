@@ -1,0 +1,76 @@
+# Neo Ergo Release Workflow
+name: Neo Ergo Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g., 1.0.0)'
+        required: true
+        default: '1.0.0'
+      branch:
+        description: 'Branch to build from'
+        required: true
+        default: 'wireless'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+          fetch-depth: 0
+          submodules: recursive
+      - name: Build
+        run: |
+          git config --global --add safe.directory '*'
+          docker run --rm -v "$GITHUB_WORKSPACE:/qmk_firmware:z" -w /qmk_firmware ghcr.io/qmk/qmk_cli make "neo/neoergo_trimode:default"
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware
+          path: .build/neo_neoergo_trimode_default.bin
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Download
+        uses: actions/download-artifact@v4
+        with:
+          name: firmware
+          path: artifacts
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      - name: Create tag and release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          f=$(ls artifacts/*.bin 2>/dev/null | head -1)
+          TAG="v${{ inputs.version }}"
+          echo "Creating release $TAG from branch ${{ inputs.branch }}"
+          echo "File: $f"
+          if [ -n "$f" ] && [ -f "$f" ]; then
+            git tag -a "$TAG" -m "Neo Ergo Trimode v${{ inputs.version }}"
+            git push origin "$TAG"
+            gh release create "$TAG" \
+              --title "Neo Ergo Trimode v${{ inputs.version }}" \
+              --notes "Built from: \`${{ inputs.branch }}\` (${{ github.sha }})" \
+              --repo ${{ github.repository }} \
+              "$f"
+          else
+            echo "ERROR: No .bin file"
+            exit 1
+          fi

@@ -1,0 +1,64 @@
+name: Neo Ergo Trimode — Build
+
+on:
+  push:
+    branches: [wireless]
+
+permissions:
+  contents: write
+  statuses: write
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout firmware
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+          fetch-depth: 1
+          submodules: recursive
+
+      - name: Build firmware
+        run: |
+          git config --global --add safe.directory '*'
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/qmk_firmware:z" \
+            -w /qmk_firmware \
+            ghcr.io/qmk/qmk_cli \
+            make "neo/neoergo_trimode:default"
+
+      - name: Upload firmware artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware
+          path: .build/neo_neoergo_trimode_default.bin
+          retention-days: 7
+
+  github-status:
+    name: Update commit status
+    needs: build
+    runs-on: ubuntu-latest
+    if: always()
+    continue-on-error: true
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Disable safe.directory
+        run: git config --global --add safe.directory '*'
+
+      - name: Set commit status
+        run: |
+          if [ "${{ needs.build.result }}" = "success" ]; then
+            gh api repos/${{ github.repository }}/statuses/${{ github.sha }} -f state=success \
+              -f target_url="https://github.com/${{ github.repository }}/actions" \
+              -f description="Build OK" \
+              -f context="firmware/neoergo_trimode"
+          else
+            gh api repos/${{ github.repository }}/statuses/${{ github.sha }} -f state=failure \
+              -f target_url="https://github.com/${{ github.repository }}/actions" \
+              -f description="Build failed" \
+              -f context="firmware/neoergo_trimode"
+          fi
