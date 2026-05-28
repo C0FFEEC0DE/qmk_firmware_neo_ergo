@@ -118,9 +118,22 @@ void md_receive_raw_cb(uint8_t *pdata, uint8_t len) {}
 void md_receive_host_cb(bool resume) __attribute__((weak));
 void md_receive_host_cb(bool resume) {}
 
+#ifndef MD_PARSER_TIMEOUT_MS
+#    define MD_PARSER_TIMEOUT_MS 5  // Reset parser if no activity for 5ms (~57 bytes at 115200)
+#endif
+
 static void md_receive_msg_task(void) {
     static uint32_t data_count = 0x00;
-    static uint8_t data_remain = 0x00;
+    static uint8_t  data_remain = 0x00;
+    static uint32_t last_byte_time = 0;
+
+    // Reset parser state if too much time has passed between bytes
+    // This prevents getting stuck in a malformed packet state due to UART noise
+    if (data_count > 0 && sync_timer_elapsed32(last_byte_time) > MD_PARSER_TIMEOUT_MS) {
+        data_count = 0;
+        data_remain = 0;
+    }
+    last_byte_time = sync_timer_read32();
 
     while (uart_available()) {
         uint8_t data = uart_read();
