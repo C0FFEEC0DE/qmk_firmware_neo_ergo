@@ -122,13 +122,9 @@ void suspend_wakeup_init_kb(void) {
     suspend_wakeup_init_user();
 }
 
-bool lpwr_is_allow_timeout_hook(void) {
-    if (wireless_get_current_devs() == DEVS_USB) {
-        return false;
-    }
-
-    return true;
-}
+// lpwr_is_allow_timeout_hook removed — the DEVS_USB check is already done in
+// lpwr_is_allow_timeout() in keyboards/neo/wireless/lowpower.c, so this override
+// was silently redundant. Keeping the code path clear (Bug 12 closure).
 
 void wireless_post_task(void) {
     if (post_init_timer && timer_elapsed32(post_init_timer) >= 100) {
