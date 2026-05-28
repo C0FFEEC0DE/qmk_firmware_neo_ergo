@@ -169,7 +169,7 @@ void wb32_stop_mode(void) {
 
     /* Prevent the chip from being unable to enter stop mode due to pending interrupts */
 #if 1
-    EXTI->PR = 0x7FFFF;
+    EXTI->PR = 0x7FFFFFFF;
     for (uint8_t i = 0; i < 8; i++) {
         for (uint8_t j = 0; j < 32; j++) {
             if (NVIC->ISPR[i] & (0x01UL << j)) {
