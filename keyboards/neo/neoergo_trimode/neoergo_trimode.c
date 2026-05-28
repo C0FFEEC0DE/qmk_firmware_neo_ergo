@@ -73,8 +73,8 @@ void keyboard_post_init_kb(void) {
     //gpio_set_pin_output(DEVS_2G4_PIN);
 
     // Set GPIO as high input for battery charging state
-    // gpio_set_pin_input(BT_CABLE_PIN);
-    // gpio_set_pin_input_high(BT_CHARGE_PIN);
+    gpio_set_pin_input_high(BT_CABLE_PIN);
+    gpio_set_pin_input_high(BT_CHARGE_PIN);
 
     // Set USB_POWER_EN_PIN state before enabling the output to avoid instability
     if (confinfo.devs == DEVS_USB && gpio_read_pin(BT_CABLE_PIN)) {
