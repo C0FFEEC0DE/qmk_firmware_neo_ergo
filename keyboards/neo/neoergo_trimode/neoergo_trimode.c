@@ -9,6 +9,7 @@
 extern void wireless_task(void);
 extern bool smsg_is_busy(void);
 extern host_driver_t wireless_driver;
+extern host_driver_t wireless_driver;
 
 typedef union {
     uint32_t raw;
@@ -402,9 +403,17 @@ void wireless_send_nkro(report_nkro_t *report) {
         memset(&temp_report_keyboard, 0, sizeof(temp_report_keyboard));
     }
 #endif
+    // Wait for SMSG queue to drain before sending.
+    // Without a timeout, a stalled CH582F would block this loop infinitely.
+    // Accept up to ~16ms wait (~16 sync_ticks at 1MHz); continue anyway
+    // rather than freeze the keyboard input on a misbehaving module.
+    uint32_t smsg_timeout = sync_timer_read32();
     while (smsg_is_busy()) {
         wireless_task();
+        if (sync_timer_elapsed32(smsg_timeout) > 16) {
+            break;
+        }
     }
     wireless_driver.send_keyboard(&temp_report_keyboard);
     md_send_nkro(wls_report_nkro);
-}
+} 
