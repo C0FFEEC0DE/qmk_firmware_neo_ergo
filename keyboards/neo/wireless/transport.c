@@ -47,7 +47,17 @@ void usb_transport_enable(bool enable) {
         if (host_get_driver() != &chibios_driver) {
             extern bool last_suspend_state;
 
-            /* This flag is not set to 1 with probability after usb restart */
+            /*
+             * Workaround for USB resume detection after driver restart.
+             * When restart_usb_driver() reinitializes the USB state machine,
+             * the normal flow may not set last_suspend_state correctly before
+             * the first SUSPENDED event arrives, causing wakeup logic to be skipped.
+             * Setting it to true ensures resume detection fires properly.
+             *
+             * If USB was not actually suspended before restart, this may trigger
+             * an extra suspend_wakeup_init() call, but that is a no-op when
+             * USB is not in SUSPENDED state.
+             */
             last_suspend_state = true;
 #if !defined(KEEP_USB_CONNECTION_IN_WIRELESS_MODE)
             usb_power_connect();
