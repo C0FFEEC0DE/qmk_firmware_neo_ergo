@@ -55,6 +55,8 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
       - name: Create tag and release
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           f=$(ls artifacts/*.bin 2>/dev/null | head -1)
           TAG="v${{ inputs.version }}"
