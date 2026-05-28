@@ -1,4 +1,5 @@
 # Neo Ergo Release Workflow
+# Builds from specified branch (default: wireless) and creates GitHub Release with git tag
 name: Neo Ergo Release
 
 on:
@@ -8,6 +9,10 @@ on:
         description: 'Version tag (e.g., 1.0.0)'
         required: true
         default: '1.0.0'
+      branch:
+        description: 'Branch to build from (default: wireless)'
+        required: true
+        default: 'wireless'
 
 permissions:
   contents: write
@@ -20,6 +25,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.branch }}
           fetch-depth: 0
           submodules: recursive
       - name: Build
@@ -49,15 +55,17 @@ jobs:
         run: |
           f=$(ls artifacts/*.bin 2>/dev/null | head -1)
           TAG="v${{ inputs.version }}"
-          echo "Creating release $TAG with file: $f"
+          echo "Creating release $TAG from branch ${{ inputs.branch }}"
+          echo "File: $f"
           if [ -n "$f" ] && [ -f "$f" ]; then
-            # Create lightweight tag at current commit
+            # Create annotated tag at current commit
             git tag -a "$TAG" -m "Neo Ergo Trimode Firmware v${{ inputs.version }}"
             git push origin "$TAG"
-            # Create GitHub release with the tag
+            # Create GitHub release
             gh release create "$TAG" \
               --title "Neo Ergo Trimode v${{ inputs.version }}" \
-              --notes "Built from commit: ${{ github.sha }}
+              --notes "Built from branch: \`${{ inputs.branch }}\`
+Commit: ${{ github.sha }}
 
 ## Flashing Instructions
 1. Download the \`.bin\` file below
