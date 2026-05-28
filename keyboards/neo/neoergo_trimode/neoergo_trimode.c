@@ -21,9 +21,11 @@ confinfo_t confinfo;
 
 uint32_t post_init_timer = 0x00;
 
-uint8_t blink_index  = 0;
-bool    blink_fast   = true;
-bool    blink_slow   = true;
+uint8_t blink_index      = 0;
+bool    blink_fast       = true;
+bool    blink_slow       = true;
+static uint32_t blink_timer = 0;
+#define BLINK_UPDATE_INTERVAL_MS 50  // Update blink state every 50ms instead of every call
 
 // Implement a circular linked list of devices to support FN+TAB device
 // selection
@@ -241,9 +243,14 @@ void blink(uint8_t key_index, uint8_t r, uint8_t g, uint8_t b, bool blink) {
 }
 
 bool rgb_matrix_indicators_advanced_kb(uint8_t led_min, uint8_t led_max) {
-    blink_index = blink_index + 1;
-    blink_fast  = (blink_index % 64 == 0) ? !blink_fast : blink_fast;
-    blink_slow  = (blink_index % 128 == 0) ? !blink_slow : blink_slow;
+    // Throttle blink updates to avoid burning CPU cycles on every mainloop iteration
+    // This significantly reduces overhead when RGB matrix is active
+    if (sync_timer_elapsed32(blink_timer) >= BLINK_UPDATE_INTERVAL_MS) {
+        blink_index++;
+        blink_fast = (blink_index % 64 == 0) ? !blink_fast : blink_fast;
+        blink_slow = (blink_index % 128 == 0) ? !blink_slow : blink_slow;
+        blink_timer = sync_timer_read32();
+    }
 
     if (!rgb_matrix_indicators_advanced_user(led_min, led_max)) {
         return false;
