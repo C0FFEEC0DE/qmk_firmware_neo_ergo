@@ -9,7 +9,6 @@
 extern void wireless_task(void);
 extern bool smsg_is_busy(void);
 extern host_driver_t wireless_driver;
-extern host_driver_t wireless_driver;
 
 typedef union {
     uint32_t raw;
@@ -26,6 +25,7 @@ uint8_t blink_index      = 0;
 bool    blink_fast       = true;
 bool    blink_slow       = true;
 static uint32_t blink_timer = 0;
+static bool    caps_lock_state = false;  // Cache caps lock state to avoid 1kHz SysEx calls
 #define BLINK_UPDATE_INTERVAL_MS 50  // Update blink state every 50ms instead of every call
 
 // Implement a circular linked list of devices to support FN+TAB device
@@ -300,7 +300,12 @@ bool rgb_matrix_indicators_advanced_kb(uint8_t led_min, uint8_t led_max) {
         } break;
     }
 
-    if (host_keyboard_led_state().caps_lock) {
+    // Update caps lock cache — only query host once per blink interval (~50ms)
+    // This avoids a SysEx USB call on every mainloop iteration (~1kHz)
+    if (sync_timer_elapsed32(blink_timer) >= BLINK_UPDATE_INTERVAL_MS) {
+        caps_lock_state = host_keyboard_led_state().caps_lock;
+    }
+    if (caps_lock_state) {
         for (uint8_t j = 0; j <= 15; j++) {
             rgb_matrix_set_color(j, RGB_ADJ_WHITE);
         }
