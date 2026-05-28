@@ -1,0 +1,82 @@
+# Neo Ergo Release Workflow
+name: Neo Ergo Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g., 1.0.0)'
+        required: true
+        default: '1.0.0'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+      - name: Build
+        run: |
+          git config --global --add safe.directory '*'
+          docker run --rm -v "$GITHUB_WORKSPACE:/qmk_firmware:z" -w /qmk_firmware ghcr.io/qmk/qmk_cli make "neo/neoergo_trimode:default"
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware
+          path: .build/neo_neoergo_trimode_default.bin
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download
+        uses: actions/download-artifact@v4
+        with:
+          name: firmware
+          path: artifacts
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      - name: Create tag and release
+        run: |
+          f=$(ls artifacts/*.bin 2>/dev/null | head -1)
+          TAG="v${{ inputs.version }}"
+          echo "Creating release $TAG with file: $f"
+          if [ -n "$f" ] && [ -f "$f" ]; then
+            # Create lightweight tag at current commit
+            git tag -a "$TAG" -m "Neo Ergo Trimode Firmware v${{ inputs.version }}"
+            git push origin "$TAG"
+            # Create GitHub release with the tag
+            gh release create "$TAG" \
+              --title "Neo Ergo Trimode v${{ inputs.version }}" \
+              --notes "Built from commit: ${{ github.sha }}
+
+## Flashing Instructions
+1. Download the \`.bin\` file below
+2. Open [QMK Toolbox Beta](https://github.com/C0FFEEC0DE/qmk_toolbox/releases)
+3. Put keyboard in bootloader mode (hold Esc + Reset)
+4. File → Open → \`neo_neoergo_trimode_default.bin\` → Flash
+
+## Bug Fixes
+- NVIC bit shift: MCU enters STOP mode, fixing thermal freeze
+- GPIO init: BT_CABLE_PIN/CHARGE_PIN as inputs
+- EXTI flags: all 32 lines cleared before STOP
+- SMSG timeout: no more infinite loops
+- RGB throttling: 20Hz instead of 1kHz
+- UART parser timeout: EMI recovery
+- Key release: O(n) algorithm
+- Caps lock: cached state" \
+              --repo ${{ github.repository }} \
+              "$f"
+          else
+            echo "ERROR: No .bin file found"
+            exit 1
+          fi
