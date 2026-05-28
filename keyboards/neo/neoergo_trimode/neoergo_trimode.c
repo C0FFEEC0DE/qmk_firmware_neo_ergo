@@ -5,6 +5,11 @@
 #include QMK_KEYBOARD_H
 #include "wireless.h"
 
+// External declarations needed by wireless_send_nkro override
+extern void wireless_task(void);
+extern bool smsg_is_busy(void);
+extern host_driver_t wireless_driver;
+
 typedef union {
     uint32_t raw;
     struct {
@@ -385,12 +390,9 @@ void wireless_send_nkro(report_nkro_t *report) {
         memset(&temp_report_keyboard, 0, sizeof(temp_report_keyboard));
     }
 #endif
-    void wireless_task(void);
-    bool smsg_is_busy(void);
     while (smsg_is_busy()) {
         wireless_task();
     }
-    extern host_driver_t wireless_driver;
     wireless_driver.send_keyboard(&temp_report_keyboard);
     md_send_nkro(wls_report_nkro);
 }
