@@ -13,6 +13,9 @@ the keyboard. Then run the following to flash the firmware.
 qmk flash -kb neo/neoergo_trimode -km default
 ```
 
+VIA is enabled — use https://usevia.app with the Neo Ergo JSON from
+the QwertyKeys firmware page to remap keys on the fly.
+
 
 ## Quirks
 The NeoErgo uses a slightly different way to initialize the bluetooth device

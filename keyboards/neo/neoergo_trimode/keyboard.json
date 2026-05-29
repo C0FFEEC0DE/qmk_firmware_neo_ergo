@@ -25,6 +25,7 @@
             "nkro": true
         }
     },
+    "via": true,
     "features": {
         "bootmagic": true,
         "command": false,

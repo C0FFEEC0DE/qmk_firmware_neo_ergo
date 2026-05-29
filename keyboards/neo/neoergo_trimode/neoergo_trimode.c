@@ -74,12 +74,6 @@ void keyboard_post_init_kb(void) {
     gpio_write_pin_low(LED_POWER_EN_PIN);
     gpio_set_pin_output_open_drain(LED_POWER_EN_PIN);
 
-    //gpio_set_pin_output(ESCAPE_PIN);
-    //gpio_set_pin_output(DEVS_BT1_PIN);
-    //gpio_set_pin_output(DEVS_BT2_PIN);
-    //gpio_set_pin_output(DEVS_BT3_PIN);
-    //gpio_set_pin_output(DEVS_2G4_PIN);
-
     // Set GPIO as high input for battery charging state
     gpio_set_pin_input_high(BT_CABLE_PIN);
     gpio_set_pin_input_high(BT_CHARGE_PIN);
